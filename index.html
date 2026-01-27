@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ai-lab CORS Test</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap");
+
+      :root {
+        --ink: #15161a;
+        --muted: #5a5f6a;
+        --card: #ffffff;
+        --accent: #f15a24;
+        --accent-2: #2a9d8f;
+        --border: #e2e4e8;
+        --shadow: 0 16px 40px rgba(21, 22, 26, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at top, rgba(241, 90, 36, 0.12), transparent 55%),
+          radial-gradient(circle at 10% 20%, rgba(42, 157, 143, 0.18), transparent 40%),
+          #f7f5f0;
+        min-height: 100vh;
+      }
+
+      header {
+        padding: 48px 24px 24px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(2rem, 3vw, 3rem);
+        letter-spacing: -0.02em;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px 64px;
+        display: grid;
+        gap: 24px;
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+        animation: fadeUp 0.5s ease;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .row {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr) auto;
+        align-items: end;
+      }
+
+      label {
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        font-family: "JetBrains Mono", "Consolas", monospace;
+        font-size: 0.9rem;
+        background: #fff;
+      }
+
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+
+      button {
+        padding: 10px 16px;
+        border-radius: 999px;
+        border: none;
+        font-weight: 600;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      button.secondary {
+        background: var(--accent-2);
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        background: #f0f2f5;
+        color: var(--muted);
+        font-family: "JetBrains Mono", "Consolas", monospace;
+      }
+
+      .results {
+        display: grid;
+        gap: 16px;
+      }
+
+      .result-card {
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        padding: 16px;
+        background: #fcfcfc;
+        animation: fadeUp 0.4s ease;
+      }
+
+      .result-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .status-pill {
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #ffe7dd;
+        color: #8a3215;
+        font-family: "JetBrains Mono", "Consolas", monospace;
+      }
+
+      .status-pill.ok {
+        background: #def7f0;
+        color: #116a5a;
+      }
+
+      pre {
+        margin: 0;
+        padding: 12px;
+        background: #f5f7fa;
+        border-radius: 12px;
+        border: 1px solid #e6e8ec;
+        font-family: "JetBrains Mono", "Consolas", monospace;
+        font-size: 0.85rem;
+        overflow-x: auto;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 860px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+
+        button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>ai-lab CORS Test</h1>
+      <p class="subtitle">
+        Origin: <span class="tag" id="origin"></span>
+      </p>
+    </header>
+    <main>
+      <section class="panel">
+        <div class="grid">
+          <div>
+            <label for="base-url">Base URL</label>
+            <input id="base-url" type="text" value="https://www.garyo.sakura.ne.jp/cgi/api/" />
+          </div>
+          <div class="muted">
+            Use full base URL ending with /cgi/api/ (editable).
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>GET tests</h2>
+        <div class="grid">
+          <div class="row">
+            <div>
+              <label>now.cgi</label>
+              <input id="query-now" type="text" placeholder="Query (optional)" />
+            </div>
+            <div class="muted">Query string input (optional).</div>
+            <button data-method="GET" data-endpoint="now.cgi" data-query="query-now">Run</button>
+          </div>
+          <div class="row">
+            <div>
+              <label>uuid.cgi</label>
+              <input id="query-uuid" type="text" placeholder="Query (optional)" />
+            </div>
+            <div class="muted">Query string input (optional).</div>
+            <button data-method="GET" data-endpoint="uuid.cgi" data-query="query-uuid">Run</button>
+          </div>
+          <div class="row">
+            <div>
+              <label>convert.cgi</label>
+              <input id="query-convert" type="text" placeholder="Query (optional)" />
+            </div>
+            <div class="muted">Query string input (optional).</div>
+            <button data-method="GET" data-endpoint="convert.cgi" data-query="query-convert">Run</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>POST test</h2>
+        <div class="grid">
+          <div>
+            <label>validate.cgi JSON body</label>
+            <textarea id="post-validate" placeholder="{}"></textarea>
+          </div>
+          <button class="secondary" data-method="POST" data-endpoint="validate.cgi" data-body="post-validate">Run</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="result-header">
+          <h2 style="margin: 0">Results</h2>
+          <button id="clear-results" class="secondary">Clear</button>
+        </div>
+        <div id="results" class="results"></div>
+      </section>
+    </main>
+
+    <script>
+      const originEl = document.getElementById("origin");
+      const baseInput = document.getElementById("base-url");
+      const resultsEl = document.getElementById("results");
+      const clearButton = document.getElementById("clear-results");
+
+      originEl.textContent = window.location.origin || "(no origin)";
+
+      const joinUrl = (base, path) => {
+        const trimmedBase = base.replace(/\/+$/, "");
+        const trimmedPath = path.replace(/^\/+/, "");
+        return `${trimmedBase}/${trimmedPath}`;
+      };
+
+      const normalizeQuery = (value) => {
+        const trimmed = value.trim();
+        if (!trimmed) return "";
+        return trimmed.startsWith("?") ? trimmed : `?${trimmed}`;
+      };
+
+      const formatBody = (text) => {
+        if (text === "" || text == null) return "(empty response body)";
+        try {
+          const parsed = JSON.parse(text);
+          return JSON.stringify(parsed, null, 2);
+        } catch (_) {
+          return text;
+        }
+      };
+
+      const guessCause = ({ error, status }) => {
+        if (error) {
+          const msg = String(error.message || error);
+          if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+            return "Fetch exception: possible CORS block, preflight failure, or network error.";
+          }
+          return "Fetch exception: check DevTools console/network for details.";
+        }
+        if (status === 405) return "Method not allowed (POST/OPTIONS may be blocked).";
+        if (status === 415) return "Unsupported Media Type (Content-Type rejected).";
+        if (status >= 400 && status < 500) return "Client error: request rejected or missing parameters.";
+        if (status >= 500) return "Server error: check API logs or backend.";
+        return "OK.";
+      };
+
+      const addResult = ({ label, method, url, status, statusText, durationMs, bodyText, error }) => {
+        const card = document.createElement("div");
+        card.className = "result-card";
+
+        const header = document.createElement("div");
+        header.className = "result-header";
+
+        const title = document.createElement("div");
+        title.textContent = `${method} ${label}`;
+        title.style.fontWeight = "600";
+
+        const statusPill = document.createElement("span");
+        statusPill.className = "status-pill";
+        if (!error && status >= 200 && status < 300) {
+          statusPill.classList.add("ok");
+        }
+        statusPill.textContent = error ? "FETCH EXCEPTION" : `HTTP ${status}`;
+
+        const time = document.createElement("span");
+        time.className = "tag";
+        time.textContent = `${durationMs} ms`;
+
+        header.append(title, statusPill, time);
+
+        const details = document.createElement("div");
+        details.className = "grid";
+
+        const urlLine = document.createElement("div");
+        urlLine.innerHTML = `<strong>URL:</strong> <span class="muted">${url}</span>`;
+
+        const statusLine = document.createElement("div");
+        statusLine.innerHTML = `<strong>Status:</strong> <span class="muted">${error ? String(error) : `${status} ${statusText}`}</span>`;
+
+        const causeLine = document.createElement("div");
+        causeLine.innerHTML = `<strong>Cause:</strong> <span class="muted">${guessCause({ error, status })}</span>`;
+
+        const bodyBlock = document.createElement("pre");
+        bodyBlock.textContent = formatBody(bodyText);
+
+        details.append(urlLine, statusLine, causeLine, bodyBlock);
+        card.append(header, details);
+        resultsEl.prepend(card);
+      };
+
+      const runRequest = async ({ method, endpoint, queryInputId, bodyInputId }) => {
+        const baseUrl = baseInput.value.trim();
+        const query = queryInputId ? normalizeQuery(document.getElementById(queryInputId).value) : "";
+        const url = joinUrl(baseUrl, endpoint) + query;
+        const start = performance.now();
+
+        let bodyText = "";
+        let status = 0;
+        let statusText = "";
+        let error = null;
+
+        try {
+          const options = {
+            method,
+            mode: "cors",
+            cache: "no-store",
+          };
+
+          if (bodyInputId) {
+            const rawBody = document.getElementById(bodyInputId).value.trim();
+            if (rawBody) {
+              try {
+                JSON.parse(rawBody);
+              } catch (parseError) {
+                throw new Error("Invalid JSON body.");
+              }
+            }
+            options.headers = { "Content-Type": "application/json" };
+            options.body = rawBody || "{}";
+          }
+
+          const response = await fetch(url, options);
+          status = response.status;
+          statusText = response.statusText;
+          bodyText = await response.text();
+        } catch (err) {
+          error = err;
+        }
+
+        const durationMs = Math.round(performance.now() - start);
+        addResult({
+          label: endpoint,
+          method,
+          url,
+          status,
+          statusText,
+          durationMs,
+          bodyText,
+          error,
+        });
+      };
+
+      document.querySelectorAll("button[data-endpoint]").forEach((button) => {
+        button.addEventListener("click", () => {
+          runRequest({
+            method: button.dataset.method,
+            endpoint: button.dataset.endpoint,
+            queryInputId: button.dataset.query || null,
+            bodyInputId: button.dataset.body || null,
+          });
+        });
+      });
+
+      clearButton.addEventListener("click", () => {
+        resultsEl.innerHTML = "";
+      });
+    </script>
+  </body>
+</html>
