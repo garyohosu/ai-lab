@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Visitor Map - Real-time Analytics</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+      :root {
+        --ink: #15161a;
+        --muted: #5a5f6a;
+        --card: #ffffff;
+        --accent: #f15a24;
+        --accent-2: #2a9d8f;
+        --border: #e2e4e8;
+        --shadow: 0 16px 40px rgba(21, 22, 26, 0.12);
+        --success: #2ecc71;
+        --warning: #f39c12;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at top, rgba(241, 90, 36, 0.12), transparent 55%),
+          radial-gradient(circle at 10% 20%, rgba(42, 157, 143, 0.18), transparent 40%),
+          #f7f5f0;
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      header {
+        max-width: 1400px;
+        margin: 0 auto 24px;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 3vw, 3rem);
+        letter-spacing: -0.02em;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: var(--success);
+        color: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        background: white;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+
+      main {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        gap: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .panel-full {
+        grid-column: 1 / -1;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+      }
+
+      .stat-card {
+        text-align: center;
+        padding: 16px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+        color: white;
+      }
+
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 8px;
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+      }
+
+      #map {
+        height: 500px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid var(--border);
+      }
+
+      .chart-container {
+        position: relative;
+        height: 300px;
+      }
+
+      .country-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .country-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .country-item:last-child {
+        border-bottom: none;
+      }
+
+      .country-name {
+        font-weight: 600;
+      }
+
+      .country-count {
+        background: var(--accent-2);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      h2 {
+        margin: 0 0 16px 0;
+        font-size: 1.5rem;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 48px;
+        color: var(--muted);
+      }
+
+      .error {
+        background: #fee;
+        border: 1px solid #fcc;
+        color: #c00;
+        padding: 16px;
+        border-radius: 12px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🗺️ Visitor Map</h1>
+      <div class="subtitle">
+        <span class="status-badge">
+          <span class="status-dot"></span>
+          <span id="online-status">Live</span>
+        </span>
+        <span>Real-time visitor analytics powered by Sakura CGI + GitHub Pages</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- Stats Cards -->
+      <div class="panel panel-full">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="total-visits">-</div>
+            <div class="stat-label">Total Visits</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="today-visits">-</div>
+            <div class="stat-label">Today's Visits</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="online-now">-</div>
+            <div class="stat-label">Online Now</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div class="panel panel-full">
+        <h2>📍 Visitor Locations</h2>
+        <div id="map"></div>
+      </div>
+
+      <!-- Hourly Chart -->
+      <div class="panel panel-full">
+        <h2>📊 Today's Traffic (Hourly)</h2>
+        <div class="chart-container">
+          <canvas id="hourly-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Top Countries -->
+      <div class="panel">
+        <h2>🌍 Top Countries</h2>
+        <ul class="country-list" id="country-list">
+          <li class="loading">Loading...</li>
+        </ul>
+      </div>
+    </main>
+
+    <script>
+      const API_BASE = 'https://garyo.sakura.ne.jp/cgi/api/';
+      const UPDATE_INTERVAL = 30000; // 30 seconds
+
+      let map = null;
+      let markers = [];
+      let hourlyChart = null;
+
+      // Initialize map
+      function initMap() {
+        map = L.map('map').setView([35.6762, 139.6503], 2);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 18,
+        }).addTo(map);
+      }
+
+      // Record this visit
+      async function recordVisit() {
+        try {
+          const response = await fetch(`${API_BASE}visitor.cgi`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'visit',
+              page: window.location.pathname,
+              referrer: document.referrer
+            })
+          });
+          
+          const result = await response.json();
+          if (result.ok) {
+            console.log('Visit recorded:', result.data);
+          }
+        } catch (error) {
+          console.error('Failed to record visit:', error);
+        }
+      }
+
+      // Fetch and display statistics
+      async function fetchStats() {
+        try {
+          const response = await fetch(`${API_BASE}visitor.cgi?action=stats`);
+          const result = await response.json();
+          
+          if (!result.ok) {
+            throw new Error(result.error?.message || 'API error');
+          }
+          
+          const data = result.data;
+          
+          // Update stats
+          document.getElementById('total-visits').textContent = data.total_visits.toLocaleString();
+          document.getElementById('today-visits').textContent = data.today_visits.toLocaleString();
+          document.getElementById('online-now').textContent = data.online_now.toLocaleString();
+          
+          // Update map markers
+          updateMap(data.recent_visitors);
+          
+          // Update hourly chart
+          updateHourlyChart(data.hourly_stats);
+          
+          // Update country list
+          updateCountryList(data.top_countries);
+          
+        } catch (error) {
+          console.error('Failed to fetch stats:', error);
+          document.getElementById('online-status').textContent = 'Error';
+        }
+      }
+
+      // Update map with visitor locations
+      function updateMap(visitors) {
+        // Clear existing markers
+        markers.forEach(marker => map.removeLayer(marker));
+        markers = [];
+        
+        // Add new markers
+        visitors.forEach(visitor => {
+          const marker = L.circleMarker([visitor.lat, visitor.lon], {
+            radius: 8,
+            fillColor: '#f15a24',
+            color: '#fff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.6
+          }).addTo(map);
+          
+          marker.bindPopup(`
+            <strong>${visitor.city}, ${visitor.country}</strong><br>
+            <small>${new Date(visitor.timestamp).toLocaleString()}</small>
+          `);
+          
+          markers.push(marker);
+        });
+      }
+
+      // Update hourly chart
+      function updateHourlyChart(hourlyStats) {
+        const ctx = document.getElementById('hourly-chart');
+        
+        if (hourlyChart) {
+          hourlyChart.destroy();
+        }
+        
+        hourlyChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: hourlyStats.map(h => h.hour),
+            datasets: [{
+              label: 'Visits',
+              data: hourlyStats.map(h => h.count),
+              borderColor: '#f15a24',
+              backgroundColor: 'rgba(241, 90, 36, 0.1)',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // Update country list
+      function updateCountryList(countries) {
+        const list = document.getElementById('country-list');
+        
+        if (countries.length === 0) {
+          list.innerHTML = '<li class="loading">No data yet</li>';
+          return;
+        }
+        
+        list.innerHTML = countries.map(country => `
+          <li class="country-item">
+            <span class="country-name">${country.country}</span>
+            <span class="country-count">${country.count}</span>
+          </li>
+        `).join('');
+      }
+
+      // Initialize
+      async function init() {
+        initMap();
+        await recordVisit();
+        await fetchStats();
+        
+        // Auto-refresh
+        setInterval(fetchStats, UPDATE_INTERVAL);
+      }
+
+      // Start when page loads
+      init();
+    </script>
+  </body>
+</html>
