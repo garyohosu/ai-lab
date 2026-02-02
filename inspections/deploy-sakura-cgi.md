@@ -30,12 +30,29 @@ cd ~/www/cgi/
 ```bash
 git status
 git remote -v
+git log --oneline -5
 ```
 
 ### 4. 最新版を取得（既存のリポジトリがある場合）
 ```bash
 git fetch origin
 git pull origin main
+
+# ⚠️ 重要: db.cgi が追加されたか確認
+ls -la api/db.cgi
+```
+
+**⚠️ db.cgi が存在しない場合**:
+```bash
+# 現在のコミットを確認
+git log --oneline --all | grep "db.cgi"
+
+# 最新コミット c448c8b が含まれているか確認
+git log --oneline | head -10
+
+# 含まれていない場合は強制的に pull
+git fetch origin
+git reset --hard origin/main
 ```
 
 ### 5. リポジトリがない場合は clone
@@ -76,13 +93,43 @@ cat api/_data/databases/.htaccess
 
 ### 8. CGI の動作確認
 ```bash
+# 🔍 ファイルの確認
+echo "=== Checking files ==="
+ls -la api/visitor.cgi
+ls -la api/db.cgi
+ls -la api/_lib.py
+
+# 📊 パーミッションの確認
+echo "=== Permissions ==="
+stat api/visitor.cgi | grep Access
+stat api/db.cgi | grep Access
+
+# 🧪 API テスト
+echo "=== Testing APIs ==="
+
 # 現在時刻 API のテスト
-curl https://garyo.sakura.ne.jp/cgi/api/now.cgi?tz=jst
+echo "1. now.cgi:"
+curl -s https://garyo.sakura.ne.jp/cgi/api/now.cgi?tz=jst | head -3
+
+# UUID API のテスト
+echo "2. uuid.cgi:"
+curl -s https://garyo.sakura.ne.jp/cgi/api/uuid.cgi?n=1 | head -3
 
 # visitor.cgi のテスト（統計取得）
-curl https://garyo.sakura.ne.jp/cgi/api/visitor.cgi?action=stats
+echo "3. visitor.cgi (stats):"
+curl -s https://garyo.sakura.ne.jp/cgi/api/visitor.cgi?action=stats | head -3
 
-# db.cgi のテスト（オリジン制限があるため、ブラウザからテスト）
+# db.cgi のテスト（ping）
+echo "4. db.cgi (ping):"
+curl -X POST https://garyo.sakura.ne.jp/cgi/api/db.cgi \
+  -H "Content-Type: application/json" \
+  -d '{"database":"test","action":"ping"}' | head -3
+
+# ❌ エラーが出た場合の調査
+if [ $? -ne 0 ]; then
+  echo "=== Checking error log ==="
+  tail -20 ~/www/log/error_log
+fi
 ```
 
 ### 9. エラーログの確認
@@ -125,16 +172,58 @@ tail -f ~/log/httpd-error.log
 
 ## デプロイ後のテスト
 
+### 🧪 Quick Test: db.cgi が正しくデプロイされたか確認
+
+Sakura サーバー上で実行:
+```bash
+# db.cgi が存在するか
+ls -la ~/www/cgi/api/db.cgi
+
+# 実行権限があるか
+stat ~/www/cgi/api/db.cgi | grep "Access: (0755"
+
+# データディレクトリが存在するか
+ls -la ~/www/cgi/api/_data/databases/
+
+# .htaccess が存在するか
+cat ~/www/cgi/api/_data/databases/.htaccess
+```
+
 ### visitor.cgi のテスト
 ブラウザで以下にアクセス:
 - https://garyohosu.github.io/ai-lab/visitor-map.html
+- 期待される動作: 地図が表示され、訪問記録が表示される
+- 確認事項:
+  - ✅ 訪問記録が成功する（DevTools Console で確認）
+  - ✅ 地図上にピンが表示される
+  - ✅ 統計情報が更新される
 
 ### db.cgi のテスト
 ブラウザで以下にアクセス:
 - https://garyohosu.github.io/ai-lab/db-test.html
-- "Create Test Table" をクリック
-- "Insert Sample Data" をクリック
-- "Query All Users" をクリック
+- 期待される動作: テストテーブルが作成できる
+- 手順:
+  1. "Create Test Table" をクリック → ✅ テーブルが作成される
+  2. "Insert Sample Data" をクリック → ✅ データが挿入される
+  3. "Query All Users" をクリック → ✅ データが表示される
+
+**❌ もし 404 エラーが出る場合**:
+```bash
+# Sakura サーバー上で確認
+ssh sakura
+cd ~/www/cgi/api/
+
+# db.cgi が存在するか
+ls -la db.cgi
+
+# 存在しない場合は git pull が必要
+git fetch origin
+git log --oneline origin/main | grep "db.cgi"
+git pull origin main
+
+# パーミッション設定
+chmod 755 db.cgi
+```
 
 ## 完了確認
 全てのテストが成功したら、デプロイ完了です。
