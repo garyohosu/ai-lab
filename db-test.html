@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SQLite DB API Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+      :root {
+        --ink: #15161a;
+        --muted: #5a5f6a;
+        --card: #ffffff;
+        --accent: #f15a24;
+        --accent-2: #2a9d8f;
+        --border: #e2e4e8;
+        --shadow: 0 16px 40px rgba(21, 22, 26, 0.12);
+        --success: #2ecc71;
+        --error: #e74c3c;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at top, rgba(241, 90, 36, 0.12), transparent 55%),
+          radial-gradient(circle at 10% 20%, rgba(42, 157, 143, 0.18), transparent 40%),
+          #f7f5f0;
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      header {
+        max-width: 1200px;
+        margin: 0 auto 24px;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 3vw, 3rem);
+        letter-spacing: -0.02em;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        color: var(--muted);
+      }
+
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        gap: 24px;
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      h2 {
+        margin: 0 0 16px 0;
+        font-size: 1.5rem;
+      }
+
+      .form-group {
+        margin-bottom: 16px;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 4px;
+        font-size: 0.9rem;
+      }
+
+      input, textarea, select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.9rem;
+      }
+
+      textarea {
+        min-height: 120px;
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      button {
+        padding: 12px 24px;
+        border-radius: 999px;
+        border: none;
+        font-weight: 600;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: transform 0.2s;
+      }
+
+      button:hover {
+        transform: scale(1.02);
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      button.secondary {
+        background: var(--accent-2);
+      }
+
+      .result-box {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 12px;
+        background: #f5f7fa;
+        border: 1px solid var(--border);
+      }
+
+      .result-box.success {
+        background: #d4edda;
+        border-color: var(--success);
+      }
+
+      .result-box.error {
+        background: #f8d7da;
+        border-color: var(--error);
+      }
+
+      pre {
+        margin: 8px 0 0 0;
+        padding: 12px;
+        background: #fff;
+        border-radius: 8px;
+        overflow-x: auto;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.85rem;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .quick-action {
+        padding: 12px;
+        background: var(--accent-2);
+        color: white;
+        border-radius: 12px;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 0.2s;
+      }
+
+      .quick-action:hover {
+        transform: scale(1.02);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🗄️ SQLite DB API Test</h1>
+      <p class="subtitle">Test the generic SQLite database API</p>
+    </header>
+
+    <main>
+      <!-- Setup Section -->
+      <div class="panel">
+        <h2>📦 Quick Setup</h2>
+        <p>Create a test database and table to get started:</p>
+        <div class="quick-actions">
+          <div class="quick-action" onclick="createTestTable()">
+            Create Test Table
+          </div>
+          <div class="quick-action" onclick="insertSampleData()">
+            Insert Sample Data
+          </div>
+          <div class="quick-action" onclick="queryAllUsers()">
+            Query All Users
+          </div>
+          <div class="quick-action" onclick="clearResults()">
+            Clear Results
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Query Section -->
+      <div class="panel">
+        <h2>🔧 Custom Query</h2>
+        <form id="query-form" onsubmit="executeQuery(event)">
+          <div class="form-group">
+            <label for="database">Database Name</label>
+            <input type="text" id="database" value="testdb" required />
+          </div>
+
+          <div class="form-group">
+            <label for="operation">Operation</label>
+            <select id="operation" onchange="updateFormFields()">
+              <option value="select">SELECT</option>
+              <option value="insert">INSERT</option>
+              <option value="update">UPDATE</option>
+              <option value="delete">DELETE</option>
+              <option value="count">COUNT</option>
+              <option value="create_table">CREATE TABLE</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="table">Table Name</label>
+            <input type="text" id="table" value="users" required />
+          </div>
+
+          <div class="form-group" id="data-group" style="display:none;">
+            <label for="data">Data (JSON)</label>
+            <textarea id="data" placeholder='{"name": "Alice", "email": "alice@example.com"}'></textarea>
+          </div>
+
+          <div class="form-group" id="where-group">
+            <label for="where">Where (JSON, optional)</label>
+            <textarea id="where" placeholder='{"id": 1}'></textarea>
+          </div>
+
+          <div class="form-group" id="schema-group" style="display:none;">
+            <label for="schema">Schema (JSON)</label>
+            <textarea id="schema" placeholder='{"id": "INTEGER PRIMARY KEY", "name": "TEXT", "email": "TEXT"}'></textarea>
+          </div>
+
+          <div class="button-group">
+            <button type="submit">Execute Query</button>
+            <button type="button" class="secondary" onclick="clearForm()">Clear Form</button>
+          </div>
+        </form>
+
+        <div id="result"></div>
+      </div>
+    </main>
+
+    <script>
+      const API_BASE = 'https://garyo.sakura.ne.jp/cgi/api/';
+
+      function updateFormFields() {
+        const operation = document.getElementById('operation').value;
+        const dataGroup = document.getElementById('data-group');
+        const whereGroup = document.getElementById('where-group');
+        const schemaGroup = document.getElementById('schema-group');
+
+        // Reset all
+        dataGroup.style.display = 'none';
+        whereGroup.style.display = 'none';
+        schemaGroup.style.display = 'none';
+
+        if (operation === 'insert') {
+          dataGroup.style.display = 'block';
+        } else if (operation === 'update') {
+          dataGroup.style.display = 'block';
+          whereGroup.style.display = 'block';
+        } else if (operation === 'delete') {
+          whereGroup.style.display = 'block';
+        } else if (operation === 'select' || operation === 'count') {
+          whereGroup.style.display = 'block';
+        } else if (operation === 'create_table') {
+          schemaGroup.style.display = 'block';
+        }
+      }
+
+      async function executeQuery(event) {
+        if (event) event.preventDefault();
+
+        const database = document.getElementById('database').value;
+        const operation = document.getElementById('operation').value;
+        const table = document.getElementById('table').value;
+
+        const payload = {
+          action: 'query',
+          database: database,
+          operation: operation,
+          table: table
+        };
+
+        // Add optional fields
+        const dataText = document.getElementById('data').value.trim();
+        if (dataText) {
+          try {
+            payload.data = JSON.parse(dataText);
+          } catch (e) {
+            showResult('Invalid JSON in data field', 'error');
+            return;
+          }
+        }
+
+        const whereText = document.getElementById('where').value.trim();
+        if (whereText) {
+          try {
+            payload.where = JSON.parse(whereText);
+          } catch (e) {
+            showResult('Invalid JSON in where field', 'error');
+            return;
+          }
+        }
+
+        const schemaText = document.getElementById('schema').value.trim();
+        if (schemaText) {
+          try {
+            payload.schema = JSON.parse(schemaText);
+          } catch (e) {
+            showResult('Invalid JSON in schema field', 'error');
+            return;
+          }
+        }
+
+        try {
+          const response = await fetch(`${API_BASE}db.cgi`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          const result = await response.json();
+
+          if (result.ok) {
+            showResult(JSON.stringify(result.data, null, 2), 'success');
+          } else {
+            showResult(JSON.stringify(result.error, null, 2), 'error');
+          }
+        } catch (error) {
+          showResult(`Error: ${error.message}`, 'error');
+        }
+      }
+
+      function showResult(text, type = 'info') {
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = `
+          <div class="result-box ${type}">
+            <strong>${type.toUpperCase()}</strong>
+            <pre>${text}</pre>
+          </div>
+        `;
+      }
+
+      function clearForm() {
+        document.getElementById('query-form').reset();
+        updateFormFields();
+      }
+
+      function clearResults() {
+        document.getElementById('result').innerHTML = '';
+      }
+
+      async function createTestTable() {
+        const payload = {
+          action: 'query',
+          database: 'testdb',
+          operation: 'create_table',
+          table: 'users',
+          schema: {
+            id: 'INTEGER PRIMARY KEY AUTOINCREMENT',
+            name: 'TEXT NOT NULL',
+            email: 'TEXT',
+            created_at: 'DATETIME DEFAULT CURRENT_TIMESTAMP'
+          }
+        };
+
+        try {
+          const response = await fetch(`${API_BASE}db.cgi`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          const result = await response.json();
+          showResult(JSON.stringify(result, null, 2), result.ok ? 'success' : 'error');
+        } catch (error) {
+          showResult(`Error: ${error.message}`, 'error');
+        }
+      }
+
+      async function insertSampleData() {
+        const users = [
+          { name: 'Alice', email: 'alice@example.com' },
+          { name: 'Bob', email: 'bob@example.com' },
+          { name: 'Charlie', email: 'charlie@example.com' }
+        ];
+
+        for (const user of users) {
+          const payload = {
+            action: 'query',
+            database: 'testdb',
+            operation: 'insert',
+            table: 'users',
+            data: user
+          };
+
+          await fetch(`${API_BASE}db.cgi`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        showResult('Inserted 3 sample users', 'success');
+      }
+
+      async function queryAllUsers() {
+        const payload = {
+          action: 'query',
+          database: 'testdb',
+          operation: 'select',
+          table: 'users'
+        };
+
+        try {
+          const response = await fetch(`${API_BASE}db.cgi`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          const result = await response.json();
+          showResult(JSON.stringify(result, null, 2), result.ok ? 'success' : 'error');
+        } catch (error) {
+          showResult(`Error: ${error.message}`, 'error');
+        }
+      }
+
+      // Initialize form fields
+      updateFormFields();
+    </script>
+  </body>
+</html>
