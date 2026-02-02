@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Visitor Map - Real-time Analytics</title>
+    <title>訪問者マップ - リアルタイム分析</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,6 +29,7 @@
         --shadow: 0 16px 40px rgba(21, 22, 26, 0.12);
         --success: #2ecc71;
         --warning: #f39c12;
+        --error: #e74c3c;
       }
 
       * {
@@ -72,11 +73,24 @@
         gap: 6px;
         padding: 4px 12px;
         border-radius: 999px;
-        background: var(--success);
-        color: white;
         font-size: 0.85rem;
         font-weight: 600;
         font-family: "JetBrains Mono", monospace;
+      }
+
+      .status-badge.live {
+        background: var(--success);
+        color: white;
+      }
+
+      .status-badge.loading {
+        background: var(--warning);
+        color: white;
+      }
+
+      .status-badge.error {
+        background: var(--error);
+        color: white;
       }
 
       .status-dot {
@@ -110,6 +124,24 @@
 
       .panel-full {
         grid-column: 1 / -1;
+      }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .panel-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+
+      .last-update {
+        font-size: 0.85rem;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
       }
 
       .stats-grid {
@@ -151,109 +183,115 @@
         height: 300px;
       }
 
-      .country-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-
-      .country-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px;
-        border-bottom: 1px solid var(--border);
-      }
-
-      .country-item:last-child {
-        border-bottom: none;
-      }
-
-      .country-name {
-        font-weight: 600;
-      }
-
-      .country-count {
-        background: var(--accent-2);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 999px;
-        font-size: 0.85rem;
-        font-family: "JetBrains Mono", monospace;
-      }
-
-      h2 {
-        margin: 0 0 16px 0;
-        font-size: 1.5rem;
-      }
-
-      .loading {
+      .empty-state {
         text-align: center;
-        padding: 48px;
+        padding: 40px;
         color: var(--muted);
       }
 
-      .error {
-        background: #fee;
-        border: 1px solid #fcc;
-        color: #c00;
-        padding: 16px;
+      .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 16px;
+        opacity: 0.3;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: var(--success);
+        color: white;
+        padding: 16px 24px;
         border-radius: 12px;
-        text-align: center;
+        box-shadow: var(--shadow);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.9rem;
+        animation: slideIn 0.3s ease-out;
+        z-index: 9999;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
       }
     </style>
   </head>
   <body>
     <header>
-      <h1>🗺️ Visitor Map</h1>
+      <h1>🗺️ 訪問者マップ</h1>
       <div class="subtitle">
-        <span class="status-badge">
-          <span class="status-dot"></span>
-          <span id="online-status">Live</span>
+        Sakura CGI × GitHub Pages によるリアルタイム解析
+        <span class="status-badge loading" id="status-badge">
+          <span class="spinner"></span>
+          読み込み中...
         </span>
-        <span>Real-time visitor analytics powered by Sakura CGI + GitHub Pages</span>
       </div>
     </header>
 
     <main>
-      <!-- Stats Cards -->
+      <!-- Stats Panel -->
       <div class="panel panel-full">
+        <div class="panel-header">
+          <h2 class="panel-title">📊 統計情報</h2>
+          <span class="last-update" id="last-update">更新中...</span>
+        </div>
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-value" id="total-visits">-</div>
-            <div class="stat-label">Total Visits</div>
+            <div class="stat-value" id="total-visits">--</div>
+            <div class="stat-label">総訪問数</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value" id="today-visits">-</div>
-            <div class="stat-label">Today's Visits</div>
+            <div class="stat-value" id="today-visits">--</div>
+            <div class="stat-label">今日の訪問</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value" id="online-now">-</div>
-            <div class="stat-label">Online Now</div>
+            <div class="stat-value" id="online-now">--</div>
+            <div class="stat-label">現在オンライン</div>
           </div>
         </div>
       </div>
 
-      <!-- Map -->
+      <!-- Map Panel -->
       <div class="panel panel-full">
-        <h2>📍 Visitor Locations</h2>
+        <div class="panel-header">
+          <h2 class="panel-title">🌍 訪問場所</h2>
+        </div>
         <div id="map"></div>
-      </div>
-
-      <!-- Hourly Chart -->
-      <div class="panel panel-full">
-        <h2>📊 Today's Traffic (Hourly)</h2>
-        <div class="chart-container">
-          <canvas id="hourly-chart"></canvas>
+        <div id="map-empty" class="empty-state" style="display: none;">
+          <div class="empty-state-icon">📍</div>
+          <p>まだ訪問データがありません</p>
+          <p style="font-size: 0.9rem; margin-top: 8px;">このページを開くと自動的に記録されます</p>
         </div>
       </div>
 
-      <!-- Top Countries -->
-      <div class="panel">
-        <h2>🌍 Top Countries</h2>
-        <ul class="country-list" id="country-list">
-          <li class="loading">Loading...</li>
-        </ul>
+      <!-- Chart Panel -->
+      <div class="panel panel-full">
+        <div class="panel-header">
+          <h2 class="panel-title">📈 24時間の訪問推移</h2>
+        </div>
+        <div class="chart-container">
+          <canvas id="hourlyChart"></canvas>
+        </div>
       </div>
     </main>
 
@@ -264,6 +302,30 @@
       let map = null;
       let markers = [];
       let hourlyChart = null;
+      let updateTimer = null;
+
+      // Toast notification
+      function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+      }
+
+      // Update status badge
+      function updateStatus(status, message) {
+        const badge = document.getElementById('status-badge');
+        badge.className = `status-badge ${status}`;
+        
+        if (status === 'live') {
+          badge.innerHTML = '<span class="status-dot"></span> ライブ';
+        } else if (status === 'loading') {
+          badge.innerHTML = '<span class="spinner"></span> ' + message;
+        } else if (status === 'error') {
+          badge.innerHTML = '⚠️ エラー';
+        }
+      }
 
       // Initialize map
       function initMap() {
@@ -290,141 +352,138 @@
           
           const result = await response.json();
           if (result.ok) {
-            console.log('Visit recorded:', result.data);
+            console.log('✅ 訪問記録成功:', result.data);
+            showToast('✅ 訪問を記録しました');
+            return true;
           }
         } catch (error) {
-          console.error('Failed to record visit:', error);
+          console.error('❌ 訪問記録失敗:', error);
+          return false;
         }
       }
 
-      // Fetch and display statistics
-      async function fetchStats() {
+      // Fetch and update stats
+      async function updateStats() {
+        updateStatus('loading', '更新中...');
+        
         try {
           const response = await fetch(`${API_BASE}visitor.cgi?action=stats`);
           const result = await response.json();
           
-          if (!result.ok) {
-            throw new Error(result.error?.message || 'API error');
+          if (result.ok) {
+            const stats = result.data;
+            
+            // Update stats
+            document.getElementById('total-visits').textContent = stats.total_visits || 0;
+            document.getElementById('today-visits').textContent = stats.today_visits || 0;
+            document.getElementById('online-now').textContent = stats.online_now || 0;
+            
+            // Update last update time
+            const now = new Date();
+            document.getElementById('last-update').textContent = 
+              `最終更新: ${now.toLocaleTimeString('ja-JP')}`;
+            
+            // Update map
+            updateMap(stats.recent_locations || []);
+            
+            // Update chart
+            updateChart(stats.hourly || []);
+            
+            updateStatus('live', 'ライブ');
+            
+            // Show empty state if no data
+            if ((stats.total_visits || 0) === 0) {
+              document.getElementById('map').style.display = 'none';
+              document.getElementById('map-empty').style.display = 'block';
+            } else {
+              document.getElementById('map').style.display = 'block';
+              document.getElementById('map-empty').style.display = 'none';
+            }
+          } else {
+            throw new Error('API returned error');
           }
-          
-          const data = result.data;
-          
-          // Update stats
-          document.getElementById('total-visits').textContent = data.total_visits.toLocaleString();
-          document.getElementById('today-visits').textContent = data.today_visits.toLocaleString();
-          document.getElementById('online-now').textContent = data.online_now.toLocaleString();
-          
-          // Update map markers
-          updateMap(data.recent_visitors);
-          
-          // Update hourly chart
-          updateHourlyChart(data.hourly_stats);
-          
-          // Update country list
-          updateCountryList(data.top_countries);
-          
         } catch (error) {
-          console.error('Failed to fetch stats:', error);
-          document.getElementById('online-status').textContent = 'Error';
+          console.error('統計取得エラー:', error);
+          updateStatus('error', 'エラー');
         }
       }
 
-      // Update map with visitor locations
-      function updateMap(visitors) {
+      // Update map markers
+      function updateMap(locations) {
         // Clear existing markers
-        markers.forEach(marker => map.removeLayer(marker));
+        markers.forEach(m => map.removeLayer(m));
         markers = [];
         
         // Add new markers
-        visitors.forEach(visitor => {
-          const marker = L.circleMarker([visitor.lat, visitor.lon], {
-            radius: 8,
-            fillColor: '#f15a24',
-            color: '#fff',
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.6
-          }).addTo(map);
-          
-          marker.bindPopup(`
-            <strong>${visitor.city}, ${visitor.country}</strong><br>
-            <small>${new Date(visitor.timestamp).toLocaleString()}</small>
-          `);
-          
-          markers.push(marker);
-        });
-      }
-
-      // Update hourly chart
-      function updateHourlyChart(hourlyStats) {
-        const ctx = document.getElementById('hourly-chart');
-        
-        if (hourlyChart) {
-          hourlyChart.destroy();
-        }
-        
-        hourlyChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: hourlyStats.map(h => h.hour),
-            datasets: [{
-              label: 'Visits',
-              data: hourlyStats.map(h => h.count),
-              borderColor: '#f15a24',
-              backgroundColor: 'rgba(241, 90, 36, 0.1)',
-              tension: 0.4,
-              fill: true
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  stepSize: 1
-                }
-              }
-            }
+        locations.forEach(loc => {
+          if (loc.lat && loc.lng) {
+            const marker = L.marker([loc.lat, loc.lng]).addTo(map);
+            marker.bindPopup(`
+              <strong>${loc.country || '不明'}</strong><br>
+              訪問者ID: ${loc.visitor_id}<br>
+              時刻: ${new Date(loc.timestamp).toLocaleString('ja-JP')}
+            `);
+            markers.push(marker);
           }
         });
       }
 
-      // Update country list
-      function updateCountryList(countries) {
-        const list = document.getElementById('country-list');
+      // Update chart
+      function updateChart(hourlyData) {
+        const labels = hourlyData.map(d => `${d.hour}時`);
+        const data = hourlyData.map(d => d.count);
         
-        if (countries.length === 0) {
-          list.innerHTML = '<li class="loading">No data yet</li>';
-          return;
+        if (hourlyChart) {
+          hourlyChart.data.labels = labels;
+          hourlyChart.data.datasets[0].data = data;
+          hourlyChart.update();
+        } else {
+          const ctx = document.getElementById('hourlyChart').getContext('2d');
+          hourlyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: '訪問数',
+                data: data,
+                borderColor: 'rgb(241, 90, 36)',
+                backgroundColor: 'rgba(241, 90, 36, 0.1)',
+                tension: 0.4,
+                fill: true
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { stepSize: 1 }
+                }
+              }
+            }
+          });
         }
-        
-        list.innerHTML = countries.map(country => `
-          <li class="country-item">
-            <span class="country-name">${country.country}</span>
-            <span class="country-count">${country.count}</span>
-          </li>
-        `).join('');
+      }
+
+      // Auto update
+      function startAutoUpdate() {
+        updateTimer = setInterval(updateStats, UPDATE_INTERVAL);
       }
 
       // Initialize
       async function init() {
         initMap();
         await recordVisit();
-        await fetchStats();
-        
-        // Auto-refresh
-        setInterval(fetchStats, UPDATE_INTERVAL);
+        await updateStats();
+        startAutoUpdate();
       }
 
-      // Start when page loads
-      init();
+      // Start when DOM is ready
+      document.addEventListener('DOMContentLoaded', init);
     </script>
   </body>
 </html>
